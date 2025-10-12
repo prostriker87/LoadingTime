@@ -22,3 +22,4 @@ usleep(200000);
 LoadingTime::mark('controller.php');
 
 echo LoadingTime::report();
+?>
