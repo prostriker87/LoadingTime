@@ -7,5 +7,11 @@ Just a simple PHP  timer markup
         include '_scripts/LoadingTime.php';
         LoadingTime::start($time, $memory);
         LoadingTime::mark('LoadingTime.php');
+    ?><!DOCTYPE html>
+    <html lang="es">
+        <head></head>
+        <body></body>
+    </html>
+    <?php
         echo LoadingTime::report();
     ?>
