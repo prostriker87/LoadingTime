@@ -2,12 +2,9 @@
 <p>Just a simple PHP  timer markup</p>
 <img width="307" height="623" margin="auto" alt="image" src="https://github.com/user-attachments/assets/e7174978-7e63-4f65-89cf-44db61792994" />
 
-    <?php 
-        $time = microtime(TRUE);
-        $memory = memory_get_usage();
+    <?php
         include '_scripts/LoadingTime.php';
-        LoadingTime::start($time, $memory);
-        LoadingTime::mark('Modules Load','start',[$time, $memory]);
+        LoadingTime::mark('Modules Load','start',[$time, $memory]); // $time & $memory inherit from LoadingTime.php
         LoadingTime::mark('LoadingTime.php');
         /*
         (...)
