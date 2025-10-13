@@ -1,5 +1,5 @@
 <?php 
-    include '_scripts/LoadingTime.php';
+    include 'LoadingTime.php';
     LoadingTime::mark('Modules Load','start',[$time, $memory]); // $time & $memory inherited from LoadingTime.php
     LoadingTime::mark('LoadingTime.php');
     /*
