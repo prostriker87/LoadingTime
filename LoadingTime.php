@@ -29,43 +29,37 @@
             $nowTime = microtime(true);
             $nowMemory = memory_get_usage();
 
-
-            
-
             // --- Contador independiente ---
             if ($action === 'start') {
-                if(isset($data) && is_array($data)) {
-                    self::$counters[$name] = [
-                        'startTime' => $data[0],
-                        'startMemory' => $data[1],
-                        'endTime' => null,
-                        'endMemory' => null
-                    ];
-                }else{
-                    self::$counters[$name] = [
-                        'startTime' => $nowTime,
-                        'startMemory' => $nowMemory,
-                        'endTime' => null,
-                        'endMemory' => null
-                    ];
-                }
+                self::$counters[$name] = [
+                    'startTime' => $data[0] ?? $nowTime,
+                    'startMemory' => $data[1] ?? $nowMemory,
+                    'endTime' => null,
+                    'endMemory' => null
+                ];
             } elseif ($action === 'stop' && isset(self::$counters[$name])) {
                 self::$counters[$name]['endTime'] = $nowTime;
                 self::$counters[$name]['endMemory'] = $nowMemory;
-            }else{
-            // Registro normal de marca
+            } else {
+                // --- Registro normal de módulo ---
                 $elapsedTime = ($nowTime - self::$lastTime) * 1000;
                 $elapsedMemory = ($nowMemory - self::$lastMemory) / 1024 / 1024;
 
+                // Guardamos además el "start" relativo para orden correcto
+                $startOffset = $nowTime - self::$startTime;
+
                 self::$modules[] = [
-                'name' => $name,
-                'time' => $elapsedTime,
-                'memory' => $elapsedMemory
+                    'name' => $name,
+                    'time' => $elapsedTime,
+                    'memory' => $elapsedMemory,
+                    'start' => $startOffset
                 ];
+
                 self::$lastTime = $nowTime;
                 self::$lastMemory = $nowMemory;
             }
         }
+
 
         // Genera el reporte visual
         public static function report() {
@@ -77,6 +71,39 @@
             $unitTotal = $totalTime >= 1000 ? 'secs' : 'ms';
             if ($totalTime >= 1000) $totalTime /= 1000;
 
+            // 🔹 Fusionar módulos y contadores con su tiempo de inicio relativo
+            $merged = [];
+
+            foreach (self::$modules as $m) {
+                $merged[] = [
+                    'type' => 'module',
+                    'name' => $m['name'],
+                    'time' => $m['time'],
+                    'memory' => $m['memory'],
+                    'start' => $m['start'] ?? 0
+                ];
+            }
+
+            foreach (self::$counters as $name => $c) {
+                if ($c['endTime'] === null) continue;
+                $merged[] = [
+                    'type' => 'counter',
+                    'name' => $name,
+                    'time' => ($c['endTime'] - $c['startTime']) * 1000,
+                    'memory' => ($c['endMemory'] - $c['startMemory']) / 1024 / 1024,
+                    'start' => $c['startTime'] - self::$startTime
+                ];
+            }
+
+            // 🔹 Ordenar por inicio ascendente, empate → categoría primero
+            usort($merged, function($a, $b) {
+                $diff = $a['start'] <=> $b['start'];
+                if ($diff !== 0) return $diff;
+                return ($a['type'] === 'module' && $b['type'] === 'counter') ? -1 :
+                    (($a['type'] === 'counter' && $b['type'] === 'module') ? 1 : 0);
+            });
+
+            // 🔹 Render del HTML
             $html = '<div style="font-family:monospace; font-size:13px; background:#111; color:#eee; padding:15px; border-radius:12px; width:fit-content; margin:auto;">';
             $html .= '<h3 style="margin:0 0 10px 0; color:#0ff;">⏱️ Reporte de Carga</h3>';
             $html .= '<div style="margin-bottom:10px;">
@@ -84,73 +111,44 @@
                         ' &nbsp;|&nbsp; <strong>Memoria:</strong> ' . round($totalMemory, 2) . ' MB
                     </div>';
             $html .= '<hr style="border:1px solid #333;">';
+            $html .= '<div><strong style="color:#0ff;">Timeline (ordenado):</strong><br>';
 
-            // Timeline normal
-            $html .= '<div><strong style="color:#0ff;">Timeline:</strong><br>';
-            if (!empty(self::$modules)) {
-                $maxTime = max(array_column(self::$modules, 'time'));
-                foreach (self::$modules as $mod) {
-                    $time = $mod['time'];
-                    $mem = $mod['memory'];
-                    $unit = $time >= 1000 ? 'secs' : 'ms';
-                    if ($time >= 1000) $time /= 1000;
-                    $percent = $maxTime > 0 ? ($mod['time'] / $maxTime) * 100 : 0;
+            if (!empty($merged)) {
+                $maxTime = max(array_column($merged, 'time'));
+
+                foreach ($merged as $item) {
+                    $color = $item['type'] === 'counter' ? '#ff0' : '#0f0';
+                    $icon  = $item['type'] === 'counter' ? '⚡' : '⚙️';
+                    $unit  = $item['time'] >= 1000 ? 'secs' : 'ms';
+                    $time  = $item['time'] >= 1000 ? $item['time']/1000 : $item['time'];
+
+                    $percent = $maxTime > 0 ? ($item['time'] / $maxTime) * 100 : 0;
 
                     $html .= sprintf(
                         '<div style="margin-left:15px; margin-bottom:5px;">
-                            <span style="color:#0ff;">⚙️ %s</span>
+                            <span style="color:%s;">%s %s</span>
                             <div style="background:#222; border-radius:4px; overflow:hidden; width:250px; height:8px; margin:3px 0;">
-                                <div style="background:#0f0; width:%.1f%%; height:100%%;"></div>
+                                <div style="background:%s; width:%.1f%%; height:100%%;"></div>
                             </div>
-                            <span style="color:#0f0;">%.2f %s</span> | <span style="color:#0ff;">%.2f MB</span>
+                            <span style="color:%s;">%.2f %s</span> | <span style="color:#0ff;">%.2f MB</span>
                         </div>',
-                        htmlspecialchars($mod['name']),
-                        $percent,
-                        $time,
-                        $unit,
-                        $mem
+                        $color, $icon, htmlspecialchars($item['name']),
+                        $color, $percent,
+                        $color, $time, $unit, $item['memory']
                     );
                 }
             } else {
                 $html .= '<div style="margin-left:15px; color:#777;">(Sin marcas registradas)</div>';
             }
+
             $html .= '</div>';
-
-            // Contadores independientes (una sola línea cada uno)
-            if (!empty(self::$counters)) {
-                $html .= '<hr style="border:1px solid #333;">';
-                $html .= '<div><strong style="color:#ff0;">Contadores Independientes:</strong><br>';
-                foreach (self::$counters as $name => $counter) {
-                    if ($counter['endTime'] === null) continue; // ignorar si no se cerró con stop
-
-                    $deltaTime = ($counter['endTime'] - $counter['startTime']) * 1000;
-                    $deltaMemory = ($counter['endMemory'] - $counter['startMemory']) / 1024 / 1024;
-                    $unit = $deltaTime >= 1000 ? 'secs' : 'ms';
-                    if ($deltaTime >= 1000) $deltaTime /= 1000;
-
-                    $html .= sprintf(
-                        '<div style="margin-left:15px; margin-bottom:5px;">
-                            <span style="color:#ff0;">⚡ %s</span>
-                            <div style="background:#222; border-radius:4px; overflow:hidden; width:200px; height:6px; margin:3px 0;">
-                                <div style="background:#ff0; width:100%%; height:100%%;"></div>
-                            </div>
-                            <span style="color:#0f0;">%.2f %s</span> | <span style="color:#0ff;">%.2f MB</span>
-                        </div>',
-                        htmlspecialchars($name),
-                        $deltaTime,
-                        $unit,
-                        $deltaMemory
-                    );
-                }
-                $html .= '</div>';
-            }
-
             $html .= '<hr style="border:1px solid #333;">';
-            $html .= '<div style="font-size:11px; color:#888;">Generated by LoadingTime v4.6</div>';
+            $html .= '<div style="font-size:11px; color:#888;">Generated by LoadingTime v4.7 (optimized)</div>';
             $html .= '</div>';
 
             return $html;
         }
+
     }
     LoadingTime::start($time, $memory);
 ?>
