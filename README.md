@@ -1,7 +1,6 @@
 # LoadingTime
 <p>Just a simple PHP  timer markup</p>
-<img width="309" height="779" alt="image" src="https://github.com/user-attachments/assets/583f3127-da30-4123-b98f-4a7e1632472c" />
-
+<img width="318" height="833" alt="image" src="https://github.com/user-attachments/assets/b90e9b3e-be25-4d0a-a9e0-bea00e60fe32" />
 
     <?php 
         include 'LoadingTime.php';
