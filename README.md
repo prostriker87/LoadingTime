@@ -1,5 +1,6 @@
 # LoadingTime
-Just a simple PHP  timer markup
+<p>Just a simple PHP  timer markup</p>
+<img width="307" height="623" margin="auto" alt="image" src="https://github.com/user-attachments/assets/e7174978-7e63-4f65-89cf-44db61792994" />
 
     <?php 
         $time = microtime(TRUE);
