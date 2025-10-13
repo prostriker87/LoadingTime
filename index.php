@@ -13,8 +13,10 @@
     <head>
     </head>
     <?php
-        usleep(5000); //Head content
-        LoadingTime::mark('head'); //You need to mark to renew last_timestamp, if you only start and stop, your next mark will not have renewed your timestamp
+        usleep(5000); //Head content A
+        LoadingTime::mark('head A'); //You need to mark to renew last_timestamp, if you only start and stop, your next mark will not have renewed your timestamp
+        usleep(7500); //Head content B
+        LoadingTime::skip(); // You can also skip content time from stats
         LoadingTime::mark('body'),'start';
     ?>
     <body>
