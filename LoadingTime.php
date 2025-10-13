@@ -59,6 +59,11 @@
             }
         }
 
+        public static function skip() {
+                self::$lastTime = microtime(true);
+                self::$lastMemory = memory_get_usage();;
+        }
+
         // Genera el reporte visual
         public static function report() {
                 self::$lastTime = microtime(true);
