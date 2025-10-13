@@ -48,8 +48,7 @@
                 // Guardamos además el "start" relativo para orden correcto
                 $startOffset = $nowTime - self::$startTime;
 
-                self::$modules[] = [
-                    'name' => $name,
+                self::$modules[$name] = [
                     'time' => $elapsedTime,
                     'memory' => $elapsedMemory,
                     'start' => $startOffset
@@ -60,24 +59,17 @@
             }
         }
 
-
         // Genera el reporte visual
         public static function report() {
-            $endTime = microtime(true);
-            $endMemory = memory_get_usage();
-
-            $totalTime = ($endTime - self::$startTime) * 1000;
-            $totalMemory = ($endMemory - self::$startMemory) / 1024 / 1024;
-            $unitTotal = $totalTime >= 1000 ? 'secs' : 'ms';
-            if ($totalTime >= 1000) $totalTime /= 1000;
-
+                self::$lastTime = microtime(true);
+                self::$lastMemory = memory_get_usage();;
             // 🔹 Fusionar módulos y contadores con su tiempo de inicio relativo
             $merged = [];
 
-            foreach (self::$modules as $m) {
+            foreach (self::$modules as $name  => $m) {
                 $merged[] = [
                     'type' => 'module',
-                    'name' => $m['name'],
+                    'name' => $name,
                     'time' => $m['time'],
                     'memory' => $m['memory'],
                     'start' => $m['start'] ?? 0
@@ -102,6 +94,24 @@
                 return ($a['type'] === 'module' && $b['type'] === 'counter') ? -1 :
                     (($a['type'] === 'counter' && $b['type'] === 'module') ? 1 : 0);
             });
+
+            $endTime = microtime(true);
+            $endMemory = memory_get_usage();
+
+            $totalTime = ($endTime - self::$startTime) * 1000;
+            $totalMemory = ($endMemory - self::$startMemory) / 1024 / 1024;
+            $unitTotal = $totalTime >= 1000 ? 'secs' : 'ms';
+            if ($totalTime >= 1000) $totalTime /= 1000;
+
+            $elapsedTime = ($endTime - self::$lastTime) * 1000;
+            $elapsedMemory = ($endMemory - self::$lastMemory) / 1024 / 1024;
+            $merged[] = [
+                'type' => 'counter',
+                'name' => 'LoadingTime::report()',
+                'time' => $elapsedTime,
+                'memory' => $elapsedMemory,
+                'start' => $endTime - self::$startTime
+            ];
 
             // 🔹 Render del HTML
             $html = '<div style="font-family:monospace; font-size:13px; background:#111; color:#eee; padding:15px; border-radius:12px; width:fit-content; margin:auto;">';
