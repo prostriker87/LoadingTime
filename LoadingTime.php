@@ -9,8 +9,20 @@
         private static $lastMemory = 0;
         private static $modules = [];
         private static $counters = [];
+        private static $skip = [
+            'time' => 0,
+            'memory' => 0
+        ];
         private static $started = false;
 
+        private static function get_time() {
+            $time = microtime(true);
+            return $time;
+        }
+        private static function get_memory() {
+            $memory = memory_get_usage();
+            return $memory;
+        }
         // Inicia la medición global
         public static function start($time = null, $memory = null) {
             self::$startTime = $time ?? microtime(true);
@@ -26,14 +38,14 @@
         public static function mark($name, $action = null, $data = null) {
             if (!self::$started) self::start();
 
-            $nowTime = microtime(true);
-            $nowMemory = memory_get_usage();
+            $nowTime = self::get_time();
+            $nowMemory = self::get_memory();
 
             // --- Contador independiente ---
             if ($action === 'start') {
                 self::$counters[$name] = [
-                    'startTime' => $data[0] ?? $nowTime,
-                    'startMemory' => $data[1] ?? $nowMemory,
+                    'startTime' => $data[0] ?? self::get_time(),
+                    'startMemory' => $data[1] ?? self::get_memory(),
                     'endTime' => null,
                     'endMemory' => null
                 ];
@@ -60,8 +72,20 @@
         }
 
         public static function skip() {
-                self::$lastTime = microtime(true);
-                self::$lastMemory = memory_get_usage();;
+            $nowTime = self::get_time();
+            $nowMemory = self::get_memory();
+            $elapsedTime = ($nowTime - self::$lastTime) * 1000;
+            $elapsedMemory = ($nowMemory - self::$lastMemory) / 1024 / 1024;
+            $startOffset = $nowTime - self::$startTime;
+            if(isset(self::$skip['time'])) {
+                $elapsedTime += self::$skip['time'];
+                $elapsedMemory += self::$skip['memory'];
+            }
+            self::$skip['time'] = $elapsedTime;
+            self::$skip['memory'] = $elapsedMemory;
+            
+            self::$lastTime = microtime(true);
+            self::$lastMemory = memory_get_usage();;
         }
 
         // Genera el reporte visual
@@ -117,6 +141,15 @@
                 'memory' => $elapsedMemory,
                 'start' => $endTime - self::$startTime
             ];
+            if(isset(self::$skip['time']) && self::$skip['time'] > 0) {
+                $merged[] = [
+                    'type' => 'module',
+                    'name' => 'LoadingTime::skip()',
+                    'time' => self::$skip['time'],
+                    'memory' => self::$skip['memory'],
+                    'start' => $endTime - self::$startTime
+                ];
+            }
 
             // 🔹 Render del HTML
             $html = '<div style="font-family:monospace; font-size:13px; background:#111; color:#eee; padding:15px; border-radius:12px; width:fit-content; margin:auto;">';
@@ -163,7 +196,6 @@
 
             return $html;
         }
-
     }
     LoadingTime::start($time, $memory);
 ?>
