@@ -1,7 +1,7 @@
 <?php 
     define('LT_ENABLED', true); //false in prod
     require 'LoadingTime.php'; //must be keeped in prod or every call removed
-    LoadingTime::mark('pre-html','start',[$time, $memory]); // $time & $memory inherited from LoadingTime.php
+    LoadingTime::mark('pre-html Load','start',[$time, $memory]); // $time & $memory inherited from LoadingTime.php
     LoadingTime::mark('LoadingTime.php');
     /*
     (...)
