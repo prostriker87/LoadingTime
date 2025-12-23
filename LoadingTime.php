@@ -2,7 +2,14 @@
     $time = microtime(TRUE);
     $memory = memory_get_usage();
     class LoadingTime {
-
+        //Production deactivate by define('LT_ENABLED', true/false) before the require, if not present true by default 
+        private static bool $enabled;
+        private static function enabled(): bool {
+            if (isset(self::$enabled)) return self::$enabled;
+            self::$enabled = defined('LT_ENABLED') ? LT_ENABLED : true;
+            return self::$enabled;
+        }
+        
         private static $startTime = 0;
         private static $startMemory = 0;
         private static $lastTime = 0;
@@ -25,6 +32,7 @@
         }
         // Inicia la medición global
         public static function start($time = null, $memory = null) {
+            if (!self::enabled()) return;
             self::$startTime = $time ?? microtime(true);
             self::$startMemory = $memory ?? memory_get_usage();
             self::$lastTime = self::$startTime;
@@ -36,6 +44,7 @@
 
         // Marca un punto en la ejecución
         public static function mark($name, $action = null, $data = null) {
+            if (!self::enabled()) return;
             if (!self::$started) self::start();
 
             $nowTime = self::get_time();
@@ -72,6 +81,7 @@
         }
 
         public static function skip() {
+            if (!self::enabled()) return;
             $nowTime = self::get_time();
             $nowMemory = self::get_memory();
             $elapsedTime = ($nowTime - self::$lastTime) * 1000;
@@ -90,6 +100,7 @@
 
         // Genera el reporte visual
         public static function report() {
+            if (!self::enabled()) return '';
                 self::$lastTime = microtime(true);
                 self::$lastMemory = memory_get_usage();;
             // 🔹 Fusionar módulos y contadores con su tiempo de inicio relativo
