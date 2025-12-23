@@ -1,13 +1,14 @@
 <?php 
-    include 'LoadingTime.php';
-    LoadingTime::mark('Modules Load','start',[$time, $memory]); // $time & $memory inherited from LoadingTime.php
+    define('LT_ENABLED', true); //false in prod
+    require 'LoadingTime.php'; //must be keeped in prod or every call removed
+    LoadingTime::mark('pre-html','start',[$time, $memory]); // $time & $memory inherited from LoadingTime.php
     LoadingTime::mark('LoadingTime.php');
     /*
     (...)
     */
-    usleep(50000); //Last module load
+    usleep(50000); //Last pre-html module load
     LoadingTime::mark('Last module');
-    LoadingTime::mark('Modules Load',stop);
+    LoadingTime::mark('pre-html Load',stop);
 ?><!DOCTYPE html>
 <html lang="es">
     <head>
